@@ -350,6 +350,7 @@ class WebsocketConnection:
             self.loop.create_task(self.event_error(exc, data))
 
     async def process_ping(self, resp: str):
+        log.info("Sending PONG: PONG {}\r\n".format(resp))
         await self._websocket.send(f"PONG {resp}\r\n")
 
     async def process_data(self, data):
