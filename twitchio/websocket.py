@@ -447,8 +447,8 @@ class WebsocketConnection:
 
         if not action and badges:
             action = badges['action']
-        elif not action:
-            action = 'PING'
+#         elif not action:
+#             action = 'PING'
 
         try:
             author = self.regex["author"].match(data).group("author")
@@ -483,7 +483,7 @@ class WebsocketConnection:
 
         elif action == 'PING':
             log.debug('ACTION:: PING')
-            await self.process_ping(content)
+            await self.process_ping(':tmi.twitch.tv')
 
         elif action == 'PRIVMSG':
             await self._dispatch('message', message)
