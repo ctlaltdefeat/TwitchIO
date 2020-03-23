@@ -268,7 +268,7 @@ class WebsocketConnection:
             An argument list of channels to attempt joining.
         """
 
-        await paco.gather(*[self._join_channel(x) for x in channels], limit=3)
+        await paco.gather(*[self._join_channel(x) for x in channels], limit=self.limit)
 
     async def _join_channel(self, entry):
         channel = re.sub('[#\s]', '', entry).lower()
