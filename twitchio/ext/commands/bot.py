@@ -310,7 +310,7 @@ class Bot(Client):
         except KeyboardInterrupt:
             pass
         finally:
-            await self._ws.teardown()
+            loop.run_until_complete(self._ws.teardown())
 
     async def start(self):
         """|coro|
