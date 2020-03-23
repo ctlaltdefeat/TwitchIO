@@ -80,6 +80,7 @@ class WebsocketConnection:
 
     def __init__(self, bot, *, loop: asyncio.BaseEventLoop = None, **attrs):
         self._bot = bot
+        self.limit = self._bot.limit
         self.loop = loop or asyncio.get_event_loop()
 
         self._token = attrs.get('irc_token')
