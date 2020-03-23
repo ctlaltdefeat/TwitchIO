@@ -86,7 +86,7 @@ class WebsocketConnection:
         self._token = attrs.get('irc_token')
         self._api_token = attrs.get('api_token')
         self.client_id = attrs.get('client_id')
-        self._host = 'wss://irc-ws.chat.twitch.tv:443'
+        self._host = 'ws://irc-ws.chat.twitch.tv:80'
         self._websocket = None
         self._last_exec = None
 
