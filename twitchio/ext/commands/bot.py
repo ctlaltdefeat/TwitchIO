@@ -71,6 +71,8 @@ class Bot(Client):
         The port the webhook_server should be started on.
     callback: str [Optional]
         The pages as a string where the webhook_server should lsiten for events.
+    limit: int [Optional]
+        blah
 
     Notes
     -------
@@ -87,9 +89,10 @@ class Bot(Client):
     def __init__(self, irc_token: str, api_token: str=None, *, client_id: str=None, prefix: Union[list, tuple, str],
                  nick: str, loop: asyncio.BaseEventLoop=None, initial_channels: Union[list, tuple]=None,
                  webhook_server: bool=False, local_host: str=None, external_host: str=None, callback: str=None,
-                 port: int=None, **attrs):
+                 port: int=None, limit: int=None, **attrs):
 
         self.loop = loop or asyncio.get_event_loop()
+        self.limit = limit
         super().__init__(loop=self.loop, client_id=client_id, **attrs)
         self.nick = nick
         self.initial_channels = initial_channels
