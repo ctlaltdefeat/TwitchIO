@@ -164,8 +164,8 @@ class HTTPSession:
             elif isinstance(channel, int):
                 ids.add(str(channel))
 
-        if len(names | ids) > 100:
-            raise HTTPException('Bad Request - Total entries must not exceed 100.')
+        if len(names | ids) > 10000:
+            raise HTTPException('Bad Request - Total entries must not exceed 10000.')
 
         return names, ids
 
