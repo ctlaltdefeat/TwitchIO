@@ -47,7 +47,7 @@ class HTTPSession:
         self._bucket = RateBucket(method='http')
         self._session = aiohttp.ClientSession(loop=loop)
 
-    async def request(self, method, url, *, params=None, limit=None, **kwargs):
+    async def request(self, method, url, *, params=None, limit=4000, **kwargs):
         count = kwargs.pop('count', False)
 
         data = []
@@ -76,11 +76,10 @@ class HTTPSession:
 
         is_finished = False
         while not is_finished:
-            if limit is not None:
-                if cursor is not None:
-                    params.append(('after', cursor))
+            if cursor is not None:
+                params.append(('after', cursor))
 
-                params.append(('first', get_limit()))
+            params.append(('first', get_limit()))
 
             body, is_text = await self._request(method, url, params=params, headers=headers, **kwargs)
             if is_text:
