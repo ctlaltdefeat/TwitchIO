@@ -37,17 +37,16 @@ import sys
 import traceback
 import websockets
 from typing import Union
+import paco
 
 from .backoff import ExponentialBackoff
 from .dataclasses import *
 from .errors import WSConnectionFailure, AuthenticationError, ClientError
 
-
 log = logging.getLogger(__name__)
 
 
 class PubSubPool:
-
     POOL_MAX = 10
 
     def __init__(self, loop: asyncio.BaseEventLoop, base):
@@ -79,7 +78,7 @@ class PubSubPool:
 
 class WebsocketConnection:
 
-    def __init__(self, bot, *, loop: asyncio.BaseEventLoop=None, **attrs):
+    def __init__(self, bot, *, loop: asyncio.BaseEventLoop = None, **attrs):
         self._bot = bot
         self.loop = loop or asyncio.get_event_loop()
 
@@ -132,7 +131,7 @@ class WebsocketConnection:
             "batches": re.compile(r":(?P<author>[a-zA-Z0-9_]+)!(?P=author)@(?P=author).tmi.twitch.tv"
                                   r"\s(?P<action>[A-Z()-]+)(?:\s#)(?P<channel>\S+)"),
             "nameslist": re.compile(r"(?P<author>[a-zA-Z0-9_]+).tmi.twitch.tv\s(?P<code>\S+)\s(?P=author)"
-                                 r"\s=\s#(?P<channel>\S+)\s:(?P<names>.+)")}
+                                    r"\s=\s#(?P<channel>\S+)\s:(?P<names>.+)")}
 
         self._groups = ('action', 'data', 'content', 'channel', 'author')
         self._http = attrs.get('http')
@@ -197,7 +196,7 @@ class WebsocketConnection:
         log.debug('Sending CAP REQ: %s', cap)
         await self._websocket.send(f'CAP REQ :twitch.tv/{cap}')
 
-    async def auth_seq(self, channels: Union[list, tuple]=None):
+    async def auth_seq(self, channels: Union[list, tuple] = None):
         """|coro|
 
         Automated Authentication process.
@@ -268,7 +267,7 @@ class WebsocketConnection:
             An argument list of channels to attempt joining.
         """
 
-        await asyncio.gather(*[self._join_channel(x) for x in channels])
+        await paco.gather(*[self._join_channel(x) for x in channels], limit=3)
 
     async def _join_channel(self, entry):
         channel = re.sub('[#\s]', '', entry).lower()
@@ -281,8 +280,8 @@ class WebsocketConnection:
         except asyncio.TimeoutError:
             self._pending_joins.pop(channel)
 
-            raise asyncio.TimeoutError(
-                f'Request to join the "{channel}" channel has timed out. Make sure the channel exists.')
+            # raise asyncio.TimeoutError(
+            #     f'Request to join the "{channel}" channel has timed out. Make sure the channel exists.')
 
     async def part_channels(self, *channels: str):
         """|coro|
@@ -326,12 +325,14 @@ class WebsocketConnection:
 
             try:
                 data = await self._websocket.recv()
-            except websockets.ConnectionClosed:
+            except websockets.ConnectionClosed as e:
                 retry = backoff.delay()
                 log.info('Websocket closed: Retrying connection in %s seconds...', retry)
+                log.info(e)
 
                 await asyncio.sleep(retry)
                 await self._connect()
+                self._channel_cache = {}
                 continue
 
             await self._dispatch('raw_data', data)
@@ -379,7 +380,7 @@ class WebsocketConnection:
             await self._dispatch('ready')
             self.is_ready.set()
 
-        elif data == ':tmi.twitch.tv NOTICE * :Login authentication failed' or\
+        elif data == ':tmi.twitch.tv NOTICE * :Login authentication failed' or \
                 data == ':tmi.twitch.tv NOTICE * :Improperly formatted auth':
             log.warning('Authentication failed | %s', self._token)
             raise AuthenticationError('Websocket Authentication Failure... Check your token and nick.')
@@ -405,7 +406,7 @@ class WebsocketConnection:
             tagdict = {}
             for tag in str(tags).split(";"):
                 t = tag.split("=")
-                if t[1].isnumeric():
+                if t[1].isdigit():
                     t[1] = int(t[1])
                 tagdict[t[0]] = t[1]
             tags = tagdict
@@ -421,7 +422,7 @@ class WebsocketConnection:
 
         await self.process_actions(data, _groupsdict, badges, tags)
 
-    async def process_actions(self, raw: str, groups: dict, badges: dict, tags: dict=None):
+    async def process_actions(self, raw: str, groups: dict, badges: dict, tags: dict = None):
         # todo add remaining actions, docs
 
         # Make sure the batched JOIN and PART events get sent...
@@ -501,6 +502,14 @@ class WebsocketConnection:
                 notice = NoticeSubscription(channel=channel, user=user, tags=tags)
 
                 await self._dispatch('usernotice_subscription', notice)
+
+
+        elif action == 'HOSTTARGET':
+            target, num_viewers = content.split()
+            await self._dispatch('hosttarget', channel, target, num_viewers)
+
+        elif action == 'NOTICE':
+            await self._dispatch('notice', message)
 
         elif action == 'USERSTATE':
             log.debug('ACTION:: USERSTATE')
@@ -608,7 +617,7 @@ class WebsocketConnection:
             if isinstance(e, Exception):
                 self.loop.create_task(self.event_error(e))
 
-    async def event_error(self, error: Exception, data: str=None):
+    async def event_error(self, error: Exception, data: str = None):
         traceback.print_exception(type(error), error, error.__traceback__, file=sys.stderr)
 
     def teardown(self):
@@ -619,7 +628,6 @@ class WebsocketConnection:
 
 
 class PubSub:
-
     __slots__ = ('loop', '_pool', '_node', '_subscriptions', '_topics', '_websocket', '_timeout', '_last_result',
                  '_listener')
 
@@ -647,7 +655,6 @@ class PubSub:
         while True:
             retry = backoff.delay()
             log.info('PubSub Websocket closed: Retrying connection in %s seconds...', retry)
-
             await self.connect()
 
             if self._websocket is not None and self._websocket.open:
@@ -735,4 +742,3 @@ class PubSub:
                             "auth_token": token}}
 
         await self._websocket.send(json.dumps(payload))
-
