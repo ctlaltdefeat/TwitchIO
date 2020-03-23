@@ -168,7 +168,7 @@ class WebsocketConnection:
 
     async def _connect(self):
         try:
-            self._websocket = await websockets.connect(self._host, timeout=30)
+            self._websocket = await websockets.connect(self._host, timeout=30, ping_interval=None)
         except Exception as e:
             self._last_exec = e
             log.error('Websocket connection failed | %s', e)
@@ -328,8 +328,8 @@ class WebsocketConnection:
                 data = await self._websocket.recv()
             except websockets.ConnectionClosed as e:
                 retry = backoff.delay()
-                log.info('Websocket closed: Retrying connection in %s seconds...', retry)
-                log.info(e)
+                log.error('Websocket closed: Retrying connection in %s seconds...', retry)
+                log.error(e)
 
                 await asyncio.sleep(retry)
                 await self._connect()
