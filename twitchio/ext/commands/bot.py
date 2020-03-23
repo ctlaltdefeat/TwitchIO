@@ -310,7 +310,7 @@ class Bot(Client):
         except KeyboardInterrupt:
             pass
         finally:
-            self._ws.teardown()
+            await self._ws.teardown()
 
     async def start(self):
         """|coro|
@@ -330,7 +330,7 @@ class Bot(Client):
         except KeyboardInterrupt:
             pass
         finally:
-            self._ws.teardown()
+            await self._ws.teardown()
 
     async def _prefix_setter(self, item):
         if inspect.iscoroutinefunction(item):
